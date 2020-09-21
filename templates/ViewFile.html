@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+
+{% block content %}
+    <style>
+table, th, td {
+  border: 1px solid black;
+  border-collapse: collapse;
+}
+th, td {
+  padding: 15px;
+}
+</style>
+<div align="center">
+ <h1 >My Files on StorageBox</h1>
+<br>
+ <table>
+
+              <tr>
+                      <th>Serial no</th>
+                      <th>File Name</th>
+                      <th>Creation Date</th>
+                      <th>Last Modified</th>
+                      <th>Download</th>
+                      <th>Delete</th>
+                  </tr>
+
+        <tbody>
+               {% set count = 1 %}
+               {% for f in files %}
+             <tr>
+                    <td> {{ count }} </td>
+                    <td> {{ f.file_name}} </td>
+                 <td> {{ f.modified  }} </td>
+                    <td> {{ f.created  }} </td>
+                   <td> <a href="{{ url_for('downloadfile',filename=f.file_name) }}"> <button >  Download  </span> </button> </a> </td>
+                 <td> <a href="{{ url_for('deletefile',filename=f.file_name) }}"> <button>  Delete  </span> </button> </a> </td>
+
+             </tr>
+                {% set count = count + 1 %}
+              {% endfor %}
+                </tbody>
+   </table>
+ </div>
+
+{% endblock %}

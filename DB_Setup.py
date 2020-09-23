@@ -25,7 +25,7 @@ class FileMetadata(Base):
     __tablename__= "fileMetadata"
     id = Column(Integer, primary_key=True)
     file_name=Column(String(50),nullable=False)
-    loc=Column(String(550),nullable=False)
+    mail_id=Column(String(150),nullable=False)
     created = Column(DateTime, default=datetime.datetime.utcnow)
     modified = Column(DateTime, default=datetime.datetime.utcnow)
 
@@ -38,7 +38,7 @@ class FileMetadata(Base):
     def serialize(self):
         """Return object data in easily serializeable format"""
         return {
-            'username': self.name,
+            'username': self.username,
             'id': self.id,
             'password': self.password,
             'email': self.email,
@@ -50,7 +50,7 @@ class FileMetadata(Base):
         return {
             'id':self.id,
             'file_name': self.file_name,
-            'loc': self.loc,
+            'mail_id': self.mail_id,
             'modified': self.modified,
             'created': self.created,
 

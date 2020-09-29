@@ -23,6 +23,16 @@
                 </label>
             </div>
             <button class="button is-block is-info is-large is-fullwidth">Login</button>
+                   <p>
+	{% with messages = get_flashed_messages() %}
+	  {% if messages %}
+		<ul class=flashes>
+		{% for message in messages %}
+		  <li>{{ message }}</li>
+		{% endfor %}
+		</ul>
+	  {% endif %}
+	{% endwith %}
         </form>
     </div>
 </div>

@@ -245,7 +245,7 @@ def build_metdata(filename):
     file_metadata = {}
     response = s3.head_object(Bucket=BucketName, Key=filename)
     file_metadata['modified'] = response["LastModified"]
-    file_metadata['file_name'] = filename
+    file_metadata['file_name'] = filename.split('/',1)[1]
     try:
         file_metadata['created'] = response['ResponseMetadata']['HTTPHeaders']['x-amz-meta-creation_date']
     except:
@@ -267,6 +267,7 @@ def upload():
                 return redirect(request.url)
 
             filename = session['user_name'] + '/' + file.filename
+
             file.filename = secure_filename(filename)
             out=upload_to_S3(file,BucketName)
             result = list_files()
@@ -342,13 +343,18 @@ def viewFile():
 @application.route('/ViewFile/<string:filename>/delete', methods=['GET', 'POST'])
 def deletefile(filename):
 
-    if False:
-        return render_template('login.html')
-
+    if local_env:
         if request.method == 'POST':
-            key_name = request.args['filename']
+            filename = session['user_name'] + '/' + filename
             s3 = boto3.client("s3", aws_access_key_id=aws_access_key_id, aws_secret_access_key=aws_secret_access_key)
             s3.delete_object(Bucket=BucketName, Key=filename)
+            result = list_files()
+            return render_template('viewFile.html',files=result)
+
+
+            key_name = request.args['filename']
+            s3 = boto3.client("s3", aws_access_key_id=aws_access_key_id, aws_secret_access_key=aws_secret_access_key)
+            s3.delete_object(Bucket=BucketName, Key=key_name)
             result = list_files()
             return render_template('viewFile.html', files=result)
         else:
@@ -377,16 +383,13 @@ def deletefile(filename):
 
 @application.route('/View/<string:filename>/edit', methods=['GET', 'POST'])
 def downloadfile(filename):
-    if local_env:
-        def downloadfile():
-            return render_template('login.html')
 
-            #   key_name='psaini/psaini_FallFee2018.log'
-            key_name = request.args['keyname']
-            s3 = boto3.client("s3", aws_access_key_id=aws_access_key_id, aws_secret_access_key=aws_secret_access_key)
-            file = s3.get_object(Bucket=BucketName, Key=key_name)
-            print(file)
-            return Response(file['Body'].read(), headers={"Content-Disposition": "attachment; filename=%s" % key_name})
+    if local_env:
+        filename = session['user_name'] + '/' + filename
+        s3 = boto3.client("s3", aws_access_key_id=aws_access_key_id, aws_secret_access_key=aws_secret_access_key)
+        file = s3.get_object(Bucket=BucketName, Key=filename)
+        print(file)
+        return Response(file['Body'].read(), headers={"Content-Disposition": "attachment; filename=%s" % filename})
 
 
     else:

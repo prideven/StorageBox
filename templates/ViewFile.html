@@ -18,8 +18,10 @@ th, td {
               <tr>
                       <th>Serial no</th>
                       <th>File Name</th>
+
                       <th>Creation Date</th>
                       <th>Last Modified</th>
+
                       <th>Download</th>
                       <th>Delete</th>
                   </tr>
@@ -32,8 +34,8 @@ th, td {
                     <td> {{ f.file_name}} </td>
                  <td> {{ f.modified  }} </td>
                     <td> {{ f.created  }} </td>
-                   <td> <a href="{{ url_for('downloadfile',filename=f.file_name) }}"> <button >  Download  </span> </button> </a> </td>
-                 <td> <a href="{{ url_for('deletefile',filename=f.file_name) }}"> <button>  Delete  </span> </button> </a> </td>
+                   <td> <a href="{{ url_for('downloadfile',filename=f.file_name)}}"> <button >  Download  </span> </button> </a> </td>
+                 <td> <a href="{{ url_for('deletefile',filename=f.file_name)}}"> <button>  Delete  </span> </button> </a> </td>
 
              </tr>
                 {% set count = count + 1 %}

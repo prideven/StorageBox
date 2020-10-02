@@ -1,4 +1,4 @@
-{% extends "base.html" %}
+{% extends "base2.html" %}
 
 {% block content %}
     <style>
@@ -21,7 +21,7 @@ th, td {
 
                       <th>Creation Date</th>
                       <th>Last Modified</th>
-
+                      <th> File Description</th>
                       <th>Download</th>
                       <th>Delete</th>
                   </tr>
@@ -32,8 +32,10 @@ th, td {
              <tr>
                     <td> {{ count }} </td>
                     <td> {{ f.file_name}} </td>
+                   <td> {{ f.created  }} </td>
                  <td> {{ f.modified  }} </td>
-                    <td> {{ f.created  }} </td>
+                 <td> {{ f.description }}</td>
+
                    <td> <a href="{{ url_for('downloadfile',filename=f.file_name)}}"> <button >  Download  </span> </button> </a> </td>
                  <td> <a href="{{ url_for('deletefile',filename=f.file_name)}}"> <button>  Delete  </span> </button> </a> </td>
 

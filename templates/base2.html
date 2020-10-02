@@ -31,24 +31,18 @@
 
                     <div id="navbarMenuHeroA" class="navbar-menu">
                         <div class="navbar-end">
-                            <a href="{{ url_for('index') }}" class="navbar-item">
-                                Home
-                            </a>
-
-                            <a href="{{ url_for("profile") }}" class = "navbar-item">
+                            <a href="{{ url_for('profile') }}" class="navbar-item">
                                 Profile
-                            </a>
-
-                            <a href="{{ url_for('login') }}" class="navbar-item">
-                                Login
-                            </a>
-                            <a href="{{ url_for('signup') }}" class="navbar-item">
-                                Sign Up
                             </a>
                             <a href="{{ url_for('signout') }}" class="navbar-item">
                                 Logout
                             </a>
-
+                            <a href="{{ url_for('viewFile') }}" class="navbar-item">
+                                ViewFile
+                            </a>
+                            <a href="{{ url_for('upload') }}" class="navbar-item">
+                                UploadFile
+                            </a>
                         </div>
                     </div>
                 </div>

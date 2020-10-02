@@ -92,7 +92,7 @@ def login():
                             session.pop('next')
                             return redirect(next)
                         else:
-                            return redirect(url_for('index'))
+                            return redirect(url_for('profile'))
                 else:
                     flash("Incorrect Username and Password")
                     return render_template('login.html')
@@ -130,8 +130,6 @@ def signup():
             return render_template('index.html')
         else:
             form = RegisterForm()
-
-
             if request.method == "POST":
 
                 hashed_password = generate_password_hash(form.password.data)
@@ -194,11 +192,24 @@ def signout():
 
 @application.route('/profile', methods=['GET'])
 def profile():
-    if 'id' not in session:
-        return render_template('login.html')
-    id=session["id"]
-    user=sess.query(StorageLogin).filter_by(email=id).one()
-    return render_template('profile.html', name=user.username)
+    if local_env:
+        if 'user_name' in session:
+            return render_template('profile.html', name=session['user_name'])
+
+        else:
+            return render_template('login.html')
+
+
+
+
+
+
+    else:
+        if 'id' not in session:
+            return render_template('login.html')
+        id=session["id"]
+        user=sess.query(StorageLogin).filter_by(email=id).one()
+        return render_template('profile.html', name=user.username)
 
 
 def upload_to_S3(file, BucketName):
@@ -230,7 +241,7 @@ def list_files():
     s3_resource = boto3.resource('s3')
     my_bucket = s3_resource.Bucket(BucketName)
 
-    #    files = print_files() 
+
     result = my_bucket.objects.filter(Prefix=FILTER)
     file_metadata = {}
     fileList = []
@@ -246,6 +257,7 @@ def build_metdata(filename):
     response = s3.head_object(Bucket=BucketName, Key=filename)
     file_metadata['modified'] = response["LastModified"]
     file_metadata['file_name'] = filename.split('/',1)[1]
+    file_metadata['description']= ""
     try:
         file_metadata['created'] = response['ResponseMetadata']['HTTPHeaders']['x-amz-meta-creation_date']
     except:
@@ -267,6 +279,8 @@ def upload():
                 return redirect(request.url)
 
             filename = session['user_name'] + '/' + file.filename
+
+            g.d= request.form['File_description']
 
             file.filename = secure_filename(filename)
             out=upload_to_S3(file,BucketName)

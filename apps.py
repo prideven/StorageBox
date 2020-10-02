@@ -8,10 +8,8 @@ from sqlalchemy.orm import sessionmaker
 from DB_Setup import Base, StorageLogin, FileMetadata
 from werkzeug.utils import secure_filename
 
-
 apps = Flask(__name__)
 apps.secret_key = '12345'
-
 
 engine = create_engine('sqlite:///Storage.db')
 Base.metadata.bind = engine
@@ -24,8 +22,6 @@ UPLOAD_FOLDER = '/Users/priyanka/Desktop'
 apps.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 ALLOWED_EXTENSIONS = set(['txt', 'pdf', 'csv', 'xml','xls','doc'])
 apps.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024
-
-
 
 @apps.route('/')
 @apps.route('/home')

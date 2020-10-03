@@ -325,7 +325,7 @@ def check_file_exist(filename, bucket_name):
     objs = list(bucket.objects.filter(Prefix=filename))
     if len(objs) > 0 and objs[0].key == filename:
        file_metadata = build_metdata(filename)
-       date = file_metadata['creationdate']
+       date = file_metadata['created']
        return date
     else:
        now = datetime.now()

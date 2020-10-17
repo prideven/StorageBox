@@ -22,23 +22,23 @@ local_env=True
 
 aws_access_key_id = os.environ.get("aws_access_key_id")
 if not aws_access_key_id:
-    raise ValueError("No aws_access_key_id secret key set for EDOCManager")
+    raise ValueError("No aws_access_key_id secret key set for storageBox")
 
 aws_secret_access_key = os.environ.get("aws_secret_access_key")
 if not aws_secret_access_key:
-    raise ValueError("No aws_secret_access_key secret key set for EDOCManager")
+    raise ValueError("No aws_secret_access_key secret key set for StorageBox")
 
 EndPoint = os.environ.get("EndPoint")
 if not EndPoint:
-    raise ValueError("No END Point set  for EDOCManager")
+    raise ValueError("No END Point set  for StorageBox")
 
 BucketName = os.environ.get("BucketName")
 if not BucketName:
-    raise ValueError("No Bucket set for EDOCManager")
+    raise ValueError("No Bucket set for StorageBox")
 
 S3Host  = os.environ.get("S3Host")
 if not S3Host:
-    raise ValueError("No S3 HOST set for EDOCManager")
+    raise ValueError("No S3 HOST set for StorageBox")
 
 
 
@@ -78,10 +78,8 @@ def login():
                 form = LoginForm()
                 dynamodb_resource = resource('dynamodb', region_name=EndPoint)
                 table = dynamodb_resource.Table('users')
-
                 response = table.query(KeyConditionExpression=Key('username').eq(form.username.data))
                 items = response['Items']
-
                 if items:
                     if check_password_hash(items[0]['password'], form.password.data):
                         session['user_name'] = items[0]['username']
@@ -134,17 +132,17 @@ def signup():
 
                 hashed_password = generate_password_hash(form.password.data)
 
-                dynamodb_resource = resource('dynamodb', region_name=EndPoint)
+                dyno_resource = resource('dynamodb', region_name=EndPoint)
 
-                table = dynamodb_resource.Table('users')
+                dyno_table = dyno_resource.Table('users')
 
-                response = table.query(KeyConditionExpression=Key('username').eq(form.username.data))
+                response = dyno=dyno_table.query(KeyConditionExpression=Key('username').eq(form.username.data))
                 items = response['Items']
                 if items:
                     flash('Username already exist!, Please choose another Username and Emailid')
                     return render_template('signup.html', form=form)
                 else:
-                    response = table.put_item(
+                    response = dyno_table.put_item(
                         Item={
                             'username': form.username.data,
                             'email': form.email.data,
@@ -212,9 +210,10 @@ def profile():
         return render_template('profile.html', name=user.username)
 
 
-def upload_to_S3(file, BucketName):
+def upload_to_S3(file, BucketName,description):
     k = Key(BucketName)
     k.key = session['user_name'] + '/' + file.filename
+
     date = check_file_exist(k.key, BucketName)
     s3 = boto3.client("s3", aws_access_key_id=aws_access_key_id, aws_secret_access_key=aws_secret_access_key)
 
@@ -224,46 +223,79 @@ def upload_to_S3(file, BucketName):
             BucketName,
             k.key,
             ExtraArgs={
+
                 "ContentType": file.content_type,
+
                 "Metadata": {"creation_date": date}
+
             }
         )
     except Exception as e:
         flash("Error in file upload!: ", e)
         return e
+    filename = file.filename
+    dynomodb=boto3.resource('dynamodb')
+    dynamodb_resource = resource('dynamodb', region_name=EndPoint)
+    dyno_table = dynamodb_resource.Table('metadata')
+
+    if True:
+        dyno_table.put_item(
+            Item={
+                'filename': filename,
+                'description': description
+                # "Created": datetime.utcnow().isoformat(),
+
+            }
+        )
 
     return "Your File is successfully Uploaded in StorageBox"
 
 
 def list_files():
-    FILTER = session['user_name'] + '/'
+    User_name = session['user_name'] + '/'
     s3 = boto3.client("s3", aws_access_key_id=aws_access_key_id, aws_secret_access_key=aws_secret_access_key)
     s3_resource = boto3.resource('s3')
     my_bucket = s3_resource.Bucket(BucketName)
 
 
-    result = my_bucket.objects.filter(Prefix=FILTER)
+    result = my_bucket.objects.filter(Prefix=User_name)
     file_metadata = {}
     fileList = []
     for f in result:
-        file_metadata = build_metdata(f.key)
+        file_metadata = metadata_creation(f.key)
         fileList.append(file_metadata)
     return fileList
 
 
-def build_metdata(filename):
-    s3 = boto3.client("s3", aws_access_key_id=aws_access_key_id, aws_secret_access_key=aws_secret_access_key)
-    file_metadata = {}
-    response = s3.head_object(Bucket=BucketName, Key=filename)
-    file_metadata['modified'] = response["LastModified"]
-    file_metadata['file_name'] = filename.split('/',1)[1]
-    file_metadata['description']= ""
-    try:
-        file_metadata['created'] = response['ResponseMetadata']['HTTPHeaders']['x-amz-meta-creation_date']
-    except:
-        file_metadata['created'] = 'Not Specified'
+def metadata_creation(filename):
 
-    return file_metadata
+    s3 = boto3.client("s3", aws_access_key_id=aws_access_key_id, aws_secret_access_key=aws_secret_access_key)
+    metadata_list = {}
+
+    dynamodb_resource = resource('dynamodb', region_name=EndPoint)
+    table = dynamodb_resource.Table('metadata')
+    file=filename.split('/',1)[1]
+    response = table.query(KeyConditionExpression=Key('filename').eq(file))
+    items = response['Items']
+
+
+
+    response= s3.head_object(Bucket=BucketName, Key=filename)
+    metadata_list['modified'] = response["LastModified"]
+    metadata_list['file_name'] = filename.split('/',1)[1]
+    if items:
+
+        metadata_list['description']= items[0]['description']
+
+    else:
+        metadata_list['description']="No"
+
+    try:
+        metadata_list['created'] = response['ResponseMetadata']['HTTPHeaders']['x-amz-meta-creation_date']
+    except:
+        metadata_list['created'] = 'Not Specified'
+
+    return metadata_list
 
 
 @application.route('/upload', methods=['GET', 'POST'])
@@ -280,10 +312,12 @@ def upload():
 
             filename = session['user_name'] + '/' + file.filename
 
-            g.d= request.form['File_description']
+            description= request.form['File_description']
+
+
 
             file.filename = secure_filename(filename)
-            out=upload_to_S3(file,BucketName)
+            out=upload_to_S3(file,BucketName,description)
             result = list_files()
             return render_template('ViewFile.html', files=result)
         return render_template('uploadfile.html')
@@ -324,7 +358,7 @@ def check_file_exist(filename, bucket_name):
     bucket = s3.Bucket(bucket_name)
     objs = list(bucket.objects.filter(Prefix=filename))
     if len(objs) > 0 and objs[0].key == filename:
-       file_metadata = build_metdata(filename)
+       file_metadata = metadata_creation(filename)
        date = file_metadata['created']
        return date
     else:
@@ -339,7 +373,7 @@ def viewFile():
 
     if local_env:
         if session['user_name'] == 'admin':
-            result = list_admin_files()
+            result = admin_files()
             return render_template('Viewfile.html', files=result)
         else:
             result = list_files()
@@ -359,9 +393,28 @@ def deletefile(filename):
 
     if local_env:
         if request.method == 'POST':
+
             filename = session['user_name'] + '/' + filename
             s3 = boto3.client("s3", aws_access_key_id=aws_access_key_id, aws_secret_access_key=aws_secret_access_key)
             s3.delete_object(Bucket=BucketName, Key=filename)
+
+            dynamodb_resource = resource('dynamodb', region_name=EndPoint)
+
+            table = dynamodb_resource.Table('metadata')
+            file = filename.split('/', 1)[1]
+
+            response = table.query(KeyConditionExpression=Key('filename').eq(file))
+            items = response['Items']
+
+            if items:
+
+                dynamo_resource = resource('dynamodb', region_name=EndPoint)
+
+                response = table.delete_item(Key={
+            'filename': file,
+        },
+    )
+
             result = list_files()
             return render_template('viewFile.html',files=result)
 
@@ -392,6 +445,40 @@ def deletefile(filename):
 
 
 
+@application.route('/ViewFile/<string:filename>/edit', methods=['GET', 'POST'])
+def editfile(filename):
+
+    if True:
+        if request.method == 'POST':
+
+            dynamodb_resource = resource('dynamodb', region_name=EndPoint)
+            table = dynamodb_resource.Table('metadata')
+            response = table.query(KeyConditionExpression=Key('filename').eq(filename))
+            items = response['Items']
+
+            if items:
+                table.update_item(
+                    Key={
+                        'filename': filename,
+                    },
+                    UpdateExpression="set description = :g",
+                    ExpressionAttributeValues={
+                        ':g': request.form.get('update')
+                    },
+                    ReturnValues="UPDATED_NEW"
+                )
+                #items[0]['description'] = request.form.get('updated_description')
+
+
+            result = list_files()
+            return render_template('viewFile.html',files=result)
+        else:
+            return render_template('edit.html',file=filename)
+
+
+
+
+
 
 
 
@@ -412,7 +499,7 @@ def downloadfile(filename):
         path = os.path.join(current_app.root_path, application.config['UPLOAD_FOLDER'])
         return send_from_directory(directory=UPLOAD_FOLDER, filename=filename, as_attachment=True)
 
-def list_admin_files():
+def admin_files():
     s3 = boto3.client("s3", aws_access_key_id=aws_access_key_id, aws_secret_access_key=aws_secret_access_key)
     s3_resource = boto3.resource('s3')
     my_bucket = s3_resource.Bucket(BucketName)
@@ -423,11 +510,12 @@ def list_admin_files():
 
 
 def print_files(result):
+
      file_metadata = {}
      file_list = []
 
      for f in result:
-          file_metadata = build_metdata(f.key)
+          file_metadata = metadata_creation(f.key)
           file_list.append(file_metadata)
      return file_list
 

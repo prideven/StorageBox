@@ -16,7 +16,7 @@ th, td {
  <table>
 
               <tr>
-                      <th>Serial no</th>
+                      <th>index</th>
                       <th>File Name</th>
 
                       <th>Creation Date</th>
@@ -24,23 +24,29 @@ th, td {
                       <th> File Description</th>
                       <th>Download</th>
                       <th>Delete</th>
+                      <th>Edit</th>
                   </tr>
 
         <tbody>
-               {% set count = 1 %}
-               {% for f in files %}
-             <tr>
-                    <td> {{ count }} </td>
-                    <td> {{ f.file_name}} </td>
-                   <td> {{ f.created  }} </td>
-                 <td> {{ f.modified  }} </td>
-                 <td> {{ f.description }}</td>
+               {% set index = 0 %}
+               {% set s = files|length %}
+               {%  for f in range (0, (s)) %}
 
-                   <td> <a href="{{ url_for('downloadfile',filename=f.file_name)}}"> <button >  Download  </span> </button> </a> </td>
-                 <td> <a href="{{ url_for('deletefile',filename=f.file_name)}}"> <button>  Delete  </span> </button> </a> </td>
+             <tr>
+
+                    <td> {{ f + 1 }} </td>
+                    <td> {{ files[f].file_name}} </td>
+                   <td> {{ files[f].created  }} </td>
+                 <td> {{ files[f].modified  }} </td>
+                 <td> {{ files[f].description }}</td>
+
+
+                   <td> <a href="{{ url_for('downloadfile',filename=files[f].file_name)}}"> <button >  Download  </span> </button> </a> </td>
+                 <td> <a href="{{ url_for('deletefile',filename=files[f].file_name)}}"> <button>  Delete  </span> </button> </a> </td>
+             <td> <a href="{{ url_for('editfile',filename=files[f].file_name)}}"> <button>  Edit  </span> </button> </a> </td>
 
              </tr>
-                {% set count = count + 1 %}
+
               {% endfor %}
                 </tbody>
    </table>

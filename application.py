@@ -11,13 +11,10 @@ from sqlalchemy.orm import sessionmaker
 from DB_Setup import Base, StorageLogin, FileMetadata
 from werkzeug.utils import secure_filename
 from flask_restful import Resource,Api
-from forms import RegisterForm, LoginForm
+from forms import Registration,Login_Form
 from boto.s3.key import Key
 from boto3.dynamodb.conditions import Key
 
-
-
-local_env=True
 
 
 aws_access_key_id = os.environ.get("aws_access_key_id")
@@ -52,13 +49,14 @@ Base.metadata.bind = engine
 DBSession = sessionmaker(bind=engine)
 sess = DBSession()
 
+# for local storage
 
 UPLOAD_FOLDER = '/Users/priyanka/Desktop'
+local_env=True
 
 application.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 ALLOWED_EXTENSIONS = set(['txt', 'pdf', 'csv', 'xml','xls','doc'])
 application.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024
-
 
 
 @application.route('/')
@@ -75,13 +73,13 @@ def login():
             return render_template('index.html')
         else:
             if request.method == "POST":
-                form = LoginForm()
+                f = Login_Form()
                 dynamodb_resource = resource('dynamodb', region_name=EndPoint)
                 table = dynamodb_resource.Table('users')
-                response = table.query(KeyConditionExpression=Key('username').eq(form.username.data))
+                response = table.query(KeyConditionExpression=Key('username').eq(f.username.data))
                 items = response['Items']
                 if items:
-                    if check_password_hash(items[0]['password'], form.password.data):
+                    if check_password_hash(items[0]['password'], f.password.data):
                         session['user_name'] = items[0]['username']
                         session['email_id'] = items[0]['email']
                         # session['fullname'] = items[0]['fullname']
@@ -127,10 +125,10 @@ def signup():
         if 'user_name' in session:
             return render_template('index.html')
         else:
-            form = RegisterForm()
+            f = Registration()
             if request.method == "POST":
 
-                hashed_password = generate_password_hash(form.password.data)
+                password_hash= generate_password_hash(f.password.data)
 
                 dyno_resource = resource('dynamodb', region_name=EndPoint)
 
@@ -139,14 +137,14 @@ def signup():
                 response = dyno=dyno_table.query(KeyConditionExpression=Key('username').eq(form.username.data))
                 items = response['Items']
                 if items:
-                    flash('Username already exist!, Please choose another Username and Emailid')
-                    return render_template('signup.html', form=form)
+                    flash('User already exists, Enter another user')
+                    return render_template('signup.html', form=f)
                 else:
                     response = dyno_table.put_item(
                         Item={
-                            'username': form.username.data,
-                            'email': form.email.data,
-                            'password': hashed_password
+                            'username': f.username.data,
+                            'email': f.email.data,
+                            'password': password_hash
                         }
                     )
                     return redirect(url_for('login'))
@@ -197,11 +195,6 @@ def profile():
         else:
             return render_template('login.html')
 
-
-
-
-
-
     else:
         if 'id' not in session:
             return render_template('login.html')
@@ -214,7 +207,7 @@ def upload_to_S3(file, BucketName,description):
     k = Key(BucketName)
     k.key = session['user_name'] + '/' + file.filename
 
-    date = check_file_exist(k.key, BucketName)
+    date = duplicate_file_check(k.key, BucketName)
     s3 = boto3.client("s3", aws_access_key_id=aws_access_key_id, aws_secret_access_key=aws_secret_access_key)
 
     try:
@@ -243,7 +236,7 @@ def upload_to_S3(file, BucketName,description):
             Item={
                 'filename': filename,
                 'description': description
-                # "Created": datetime.utcnow().isoformat(),
+                 #"Created": datetime.utcnow().isoformat(),
 
             }
         )
@@ -251,7 +244,7 @@ def upload_to_S3(file, BucketName,description):
     return "Your File is successfully Uploaded in StorageBox"
 
 
-def list_files():
+def file_list():
     User_name = session['user_name'] + '/'
     s3 = boto3.client("s3", aws_access_key_id=aws_access_key_id, aws_secret_access_key=aws_secret_access_key)
     s3_resource = boto3.resource('s3')
@@ -259,11 +252,11 @@ def list_files():
 
 
     result = my_bucket.objects.filter(Prefix=User_name)
-    file_metadata = {}
+    Filemetadata = {}
     fileList = []
-    for f in result:
-        file_metadata = metadata_creation(f.key)
-        fileList.append(file_metadata)
+    for v in result:
+        Filemetadata = metadata_creation(v.key)
+        fileList.append(Filemetadata)
     return fileList
 
 
@@ -309,16 +302,12 @@ def upload():
             if file.filename == '':
                 flash('No file selected')
                 return redirect(request.url)
-
+            
             filename = session['user_name'] + '/' + file.filename
-
             description= request.form['File_description']
-
-
-
             file.filename = secure_filename(filename)
             out=upload_to_S3(file,BucketName,description)
-            result = list_files()
+            result = file_list()
             return render_template('ViewFile.html', files=result)
         return render_template('uploadfile.html')
 
@@ -352,18 +341,18 @@ def upload():
         return render_template('uploadfile.html')
 
 
-def check_file_exist(filename, bucket_name):
+def duplicate_file_check(filename, bucket_name):
     s3 = boto3.client("s3", aws_access_key_id=aws_access_key_id, aws_secret_access_key=aws_secret_access_key)
     s3 = boto3.resource('s3')
-    bucket = s3.Bucket(bucket_name)
-    objs = list(bucket.objects.filter(Prefix=filename))
-    if len(objs) > 0 and objs[0].key == filename:
-       file_metadata = metadata_creation(filename)
-       date = file_metadata['created']
+    s3_bucket = s3.Bucket(bucket_name)
+    objects = list(s3_bucket.objects.filter(Prefix=filename))
+    if len(objects) > 0 and objects[0].key == filename:
+       Filemetadata = metadata_creation(filename)
+       date = Filemetadata['created']
        return date
     else:
-       now = datetime.now()
-       date = str(now)
+       current = datetime.now()
+       date = str(current)
        return date
 
 
@@ -376,7 +365,7 @@ def viewFile():
             result = admin_files()
             return render_template('Viewfile.html', files=result)
         else:
-            result = list_files()
+            result = file_list()
             return render_template('Viewfile.html', files=result)
 
 
@@ -415,14 +404,14 @@ def deletefile(filename):
         },
     )
 
-            result = list_files()
+            result = file_list()
             return render_template('viewFile.html',files=result)
 
 
             key_name = request.args['filename']
             s3 = boto3.client("s3", aws_access_key_id=aws_access_key_id, aws_secret_access_key=aws_secret_access_key)
             s3.delete_object(Bucket=BucketName, Key=key_name)
-            result = list_files()
+            result = file_list()
             return render_template('viewFile.html', files=result)
         else:
             return render_template('deleteFile.html', file=filename)
@@ -470,7 +459,7 @@ def editfile(filename):
                 #items[0]['description'] = request.form.get('updated_description')
 
 
-            result = list_files()
+            result = file_list()
             return render_template('viewFile.html',files=result)
         else:
             return render_template('edit.html',file=filename)
@@ -501,26 +490,24 @@ def downloadfile(filename):
 
 def admin_files():
     s3 = boto3.client("s3", aws_access_key_id=aws_access_key_id, aws_secret_access_key=aws_secret_access_key)
-    s3_resource = boto3.resource('s3')
-    my_bucket = s3_resource.Bucket(BucketName)
-    result = my_bucket.objects.filter()
+    resource = boto3.resource('s3')
+    bucket = resource.Bucket(BucketName)
+    result = bucket.objects.filter()
     file_list=print_files(result)
     return file_list
 
 
-
 def print_files(result):
 
-     file_metadata = {}
+     Filemetadata = {}
      file_list = []
 
-     for f in result:
-          file_metadata = metadata_creation(f.key)
-          file_list.append(file_metadata)
+     for v in result:
+          Filemetadata = metadata_creation(v.key)
+          file_list.append(Filemetadata)
      return file_list
 
 
 if __name__ == '__main__':
     application.debug = True
     application.run(host='127.0.0.1', port=5000)
-

@@ -3,7 +3,7 @@ from wtforms import validators, StringField, PasswordField
 from wtforms.fields.html5 import EmailField
 from flask import Flask, request
 
-class RegisterForm(Form):
+class Registration(Form):
    name = StringField('Name', [validators.DataRequired()])
    email = EmailField('Email', [ validators.DataRequired()])
    username = StringField('Username', [
@@ -13,7 +13,7 @@ class RegisterForm(Form):
    password = PasswordField('Password',[validators.DataRequired()])
 
 
-class LoginForm(Form):
+class Login_Form(Form):
     username = StringField('Username', [
       validators.DataRequired(),
       validators.Length(min=4, max=25)

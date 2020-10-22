@@ -7,13 +7,13 @@ The web application is designed for users to securely login and manage the file 
 
 Deployment:
 
-•	Project is deployed Python 3.8 with flask, Users table in DynamoDB with Username (partition Key).
+•	Project is deployed Python 3.7 with flask, Users table in DynamoDB with Username (partition Key).
 
 •	Another table in DynamoDB to save the file metadata with filename(partition key)
 
 •	The files are stored in the S3 bucket with multi region availability. 
 
-•	Create a virtual env based python 3.8
+•	Create a virtual env based python 3.7
 
 •	Install packages using requirement.txt
 

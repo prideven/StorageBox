@@ -11,7 +11,7 @@ from sqlalchemy.orm import sessionmaker
 from DB_Setup import Base, StorageLogin, FileMetadata
 from werkzeug.utils import secure_filename
 from flask_restful import Resource,Api
-from forms import Registration,Login_Form
+
 from boto.s3.key import Key
 from boto3.dynamodb.conditions import Key
 
@@ -73,13 +73,13 @@ def login():
             return render_template('index.html')
         else:
             if request.method == "POST":
-                f = Login_Form()
+                name = request.form.get('username')
                 dynamodb_resource = resource('dynamodb', region_name=EndPoint)
                 table = dynamodb_resource.Table('users')
-                response = table.query(KeyConditionExpression=Key('username').eq(f.username.data))
+                response = table.query(KeyConditionExpression=Key('username').eq(name))
                 items = response['Items']
                 if items:
-                    if check_password_hash(items[0]['password'], f.password.data):
+                    if check_password_hash(items[0]['password'], request.form.get('password')):
                         session['user_name'] = items[0]['username']
                         session['email_id'] = items[0]['email']
                         # session['fullname'] = items[0]['fullname']
@@ -125,25 +125,25 @@ def signup():
         if 'user_name' in session:
             return render_template('index.html')
         else:
-            f = Registration()
+            name = request.form.get('username')
             if request.method == "POST":
 
-                password_hash= generate_password_hash(f.password.data)
+                password_hash= generate_password_hash(request.form.get('password'))
 
                 dyno_resource = resource('dynamodb', region_name=EndPoint)
 
                 dyno_table = dyno_resource.Table('users')
 
-                response = dyno=dyno_table.query(KeyConditionExpression=Key('username').eq(form.username.data))
+                response = dyno=dyno_table.query(KeyConditionExpression=Key('username').eq(name))
                 items = response['Items']
                 if items:
                     flash('User already exists, Enter another user')
-                    return render_template('signup.html', form=f)
+                    return render_template('signup.html')
                 else:
                     response = dyno_table.put_item(
                         Item={
-                            'username': f.username.data,
-                            'email': f.email.data,
+                            'username': name,
+                            'email': request.form.get('email'),
                             'password': password_hash
                         }
                     )
@@ -180,7 +180,7 @@ def signout():
         session.pop('mail_id',None)
 
         #    session.pop('screen_name', None)
-        return render_template('signOut.html')
+        return render_template('index.html')
 
     else:
         session.pop('id', None)

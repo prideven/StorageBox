@@ -17,30 +17,30 @@ from boto3.dynamodb.conditions import Key
 
 
 
-aws_access_key_id = os.environ.get("aws_access_key_id")
+aws_access_key_id = '' #os.environ.get("aws_access_key_id")
 if not aws_access_key_id:
     raise ValueError("No aws_access_key_id secret key set for storageBox")
 
-aws_secret_access_key = os.environ.get("aws_secret_access_key")
+aws_secret_access_key = '' #os.environ.get("aws_secret_access_key")
 if not aws_secret_access_key:
     raise ValueError("No aws_secret_access_key secret key set for StorageBox")
 
-EndPoint = os.environ.get("EndPoint")
+EndPoint = '' #os.environ.get("EndPoint")
 if not EndPoint:
     raise ValueError("No END Point set  for StorageBox")
 
-BucketName = os.environ.get("BucketName")
+BucketName = '' #os.environ.get("BucketName")
 if not BucketName:
     raise ValueError("No Bucket set for StorageBox")
 
-S3Host  = os.environ.get("S3Host")
+S3Host  = '' #os.environ.get("S3Host")
 if not S3Host:
     raise ValueError("No S3 HOST set for StorageBox")
 
 
 
 application = Flask(__name__)
-api=Api(application)
+# api=Api(application)
 application.secret_key = '12345'
 
 
@@ -510,4 +510,4 @@ def print_files(result):
 
 if __name__ == '__main__':
     application.debug = True
-    application.run(host='127.0.0.1', port=5000)
+    application.run()

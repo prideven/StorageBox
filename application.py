@@ -10,7 +10,6 @@ from sqlalchemy import create_engine, DateTime, func
 from sqlalchemy.orm import sessionmaker
 from DB_Setup import Base, StorageLogin, FileMetadata
 from werkzeug.utils import secure_filename
-from flask_restful import Resource,Api
 from forms import Registration,Login_Form
 from boto.s3.key import Key
 from boto3.dynamodb.conditions import Key
